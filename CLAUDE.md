@@ -14,8 +14,8 @@ Hecho de la etapa A: app funcionando en modo prueba (guarda en el navegador) con
 Sector: parte en Manuel Montt y avanza hacia Pedro de Valdivia y más allá, y hacia el sur. La lista cubre
 desde Manuel Montt hasta pasado Los Leones, y desde Andrés Bello hasta Irarrázaval (Providencia y Ñuñoa).
 La hoja de Google será de Bastián al inicio y después se traspasa al primo.
-La hoja real está conectada (cuenta de Bastián). Falta de la etapa A: publicar la app para el teléfono.
-Etapa C construida y probada contra un servidor falso; falta actualizar el puente en la hoja real.
+La hoja real está conectada (cuenta de Bastián) y el puente actualizado con la etapa C.
+App publicada el 2026-11-14 (ver "Cómo publicar"). Falta la etapa B y probarla en la calle.
 
 ## Archivos
 - `index.html`, `estilos.css`, `app.js`: la app. Sin instalaciones ni librerías.
@@ -127,4 +127,10 @@ Para cambiar de sector: editar las coordenadas en `datos/consulta-osm.txt`, volv
 `node herramientas/preparar-locales.js`.
 
 ## Cómo publicar
-Por definir (pendiente en el backlog).
+- Repositorio público en GitHub: `bastipanda/ruta-notas` (nombre neutro a propósito; la carpeta local
+  sigue siendo `ventas-nfc`). Es público porque GitHub Pages gratis lo exige.
+- La app se sirve con GitHub Pages desde la rama `main`: https://bastipanda.github.io/ruta-notas/
+- Publicar un cambio = commit + `git push` (con el OK de Bastián). GitHub tarda uno o dos minutos en
+  actualizar la página. En el teléfono puede hacer falta recargar para ver la versión nueva.
+- Nunca subir claves, la dirección del puente ni planillas con datos reales (`.gitignore` ya excluye
+  `.env`, `*.csv` y `*.xlsx`).

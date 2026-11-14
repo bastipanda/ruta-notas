@@ -5,15 +5,15 @@
   - Hoja real conectada el 2026-11-14 (confirmado por Bastián), en su cuenta. Falta revisar con datos
     de verdad que las pestañas Seguimiento, Rendición, Motivos y Casos se calculen bien. Al traspasarla al primo hay que volver a publicar el Apps Script desde su cuenta y
     actualizar la dirección en la app (el script publicado corre a nombre de quien lo publicó).
-  - Publicar la app para abrirla en el teléfono (la ubicación solo funciona en una dirección https).
+  - Publicada el 2026-11-14 en GitHub Pages. Falta probar en el teléfono: "Usar mi ubicación", conectar
+    la hoja desde ahí e instalarla en la pantalla de inicio.
   - Sector ampliado el 2026-11-14 a 2.510 locales. 698 no traen dirección en OpenStreetMap: se ubican
     por cercanía, no por calle.
   - Revisar con el primo la clasificación: hay cadenas dentro de familias vendibles (farmacias, comida rápida).
 - **Etapa C, construida el 2026-11-14 sin commit todavía** (Bastián no la ha revisado):
   - Hecho en la app: guion por familia y situación en cada ficha, pantalla Guion para ensayar, encuesta
     de tres preguntas tras el "no", mini diagnóstico para mostrar al dueño, y nota de "ya tiene NFC".
-  - **Falta que Bastián actualice el puente en la hoja**: pegar el `Codigo.gs` nuevo, publicar una versión
-    nueva y usar "Preparar hoja". Hasta entonces la hoja no recibe la encuesta ni tiene la pestaña Guiones.
+  - Puente actualizado en la hoja real por Bastián el 2026-11-14.
   - Falta que el primo revise los textos de `guiones.js` y los pase a sus palabras (en la pestaña Guiones).
   - Los umbrales de situación (nota bajo 4,2; menos de 50 reseñas) son un punto de partida sin validar.
 - **Etapa B:** nota y reseñas en vivo desde Google Maps. Necesita cuenta de facturación con tarjeta.
