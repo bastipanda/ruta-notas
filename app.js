@@ -27,17 +27,71 @@ function metros(a, b) { // distancia aproximada, suficiente para ordenar locales
 }
 
 /* ---------- guardado ----------
-   Por ahora en el navegador (modo prueba). En el paso siguiente estas mismas tres funciones
-   escribirán en la hoja de Google, sin tocar el resto de la app. */
-const CLAVE = 'ventas-nfc-v1';
+   Primero en el teléfono, después en la hoja. Cada registro se guarda de inmediato en el navegador
+   y queda en una cola de "por enviar"; la cola se vacía sola hacia la hoja de Google cuando hay señal.
+   Así nada se pierde si en la calle no hay internet.
+   La dirección del puente y la clave se guardan solo en este navegador, nunca en el código. */
+const CLAVE = 'ventas-nfc-v1', CLAVE_CFG = 'ventas-nfc-cfg';
 const Store = {
-  datos: {visitas: [], locales: []},
-  cargar() { try { const t = localStorage.getItem(CLAVE); if (t) this.datos = JSON.parse(t); } catch (e) { this.falla = true; } },
+  datos: {visitas: [], locales: [], pend: []},
+  cfg: null, ocupado: false, error: false,
+  cargar() {
+    try {
+      const t = localStorage.getItem(CLAVE); if (t) this.datos = Object.assign({visitas: [], locales: [], pend: []}, JSON.parse(t));
+      const c = localStorage.getItem(CLAVE_CFG); if (c) this.cfg = JSON.parse(c);
+    } catch (e) { this.falla = true; }
+  },
   guardar() { try { localStorage.setItem(CLAVE, JSON.stringify(this.datos)); } catch (e) { this.falla = true; toast('No se pudo guardar en este navegador.'); } },
-  agregarVisita(v) { this.datos.visitas.push(v); this.guardar(); indexar(); },
-  agregarLocal(l) { this.datos.locales.push(l); this.guardar(); indexar(); },
-  borrarTodo() { this.datos = {visitas: [], locales: []}; this.guardar(); indexar(); }
+  guardarCfg() { try { this.cfg ? localStorage.setItem(CLAVE_CFG, JSON.stringify(this.cfg)) : localStorage.removeItem(CLAVE_CFG); } catch (e) {} },
+  agregarVisita(v) { this.datos.visitas.push(v); if (this.cfg) this.datos.pend.push({accion: 'visita', dato: v}); this.guardar(); indexar(); this.sincronizar(); },
+  agregarLocal(l) { this.datos.locales.push(l); if (this.cfg) this.datos.pend.push({accion: 'local', dato: l}); this.guardar(); indexar(); this.sincronizar(); },
+  borrarTodo() { this.datos = {visitas: [], locales: [], pend: []}; this.guardar(); indexar(); },
+
+  async llamar(cuerpo, cfg) {
+    cfg = cfg || this.cfg;
+    // Sin cabeceras especiales a propósito: así el navegador lo trata como envío simple y Google lo acepta.
+    const r = await fetch(cfg.url, {method: 'POST', body: JSON.stringify(Object.assign({clave: cfg.clave}, cuerpo))});
+    const j = await r.json();
+    if (!j.ok) throw new Error(j.error || 'error');
+    return j;
+  },
+  async sincronizar() { // envía la cola en orden; si falla, queda para el próximo intento
+    if (!this.cfg || this.ocupado) return;
+    this.ocupado = true;
+    try {
+      while (this.datos.pend.length) { await this.llamar(this.datos.pend[0]); this.datos.pend.shift(); this.guardar(); aviso(); }
+      this.error = false;
+    } catch (e) { this.error = true; }
+    this.ocupado = false; aviso();
+  },
+  async bajar() { // trae lo que hay en la hoja y conserva lo local que aún no se envía
+    const j = await this.llamar({accion: 'todo'});
+    const une = (remotos, locales, accion) => {
+      const enCola = new Set(this.datos.pend.filter(p => p.accion === accion).map(p => String(p.dato.id)));
+      const ids = new Set(remotos.map(x => String(x.id)));
+      return remotos.concat(locales.filter(x => enCola.has(String(x.id)) && !ids.has(String(x.id))));
+    };
+    this.datos.visitas = une(j.visitas, this.datos.visitas, 'visita').sort((a, b) => (a.fecha + a.id).localeCompare(b.fecha + b.id));
+    this.datos.locales = une(j.locales.map(l => Object.assign(l, {lat: l.lat === '' ? null : +l.lat, lon: l.lon === '' ? null : +l.lon, manual: true})), this.datos.locales, 'local');
+    this.guardar(); indexar();
+  },
+  async conectar(url, clave) {
+    await this.llamar({accion: 'ping'}, {url, clave}); // si la dirección o la clave están mal, falla aquí
+    this.cfg = {url, clave}; this.guardarCfg();
+    // lo registrado en modo prueba también sube a la hoja
+    this.datos.pend = this.datos.locales.map(l => ({accion: 'local', dato: l})).concat(this.datos.visitas.map(v => ({accion: 'visita', dato: v})));
+    this.guardar();
+    await this.sincronizar(); if (!this.error) await this.bajar();
+  },
+  desconectar() { this.cfg = null; this.datos.pend = []; this.error = false; this.guardarCfg(); this.guardar(); }
 };
+
+function aviso() { // franja de arriba: dice dónde están guardados los datos
+  const e = $('#aviso'), n = Store.datos.pend.length;
+  if (!Store.cfg) { e.className = 'demo'; e.textContent = 'Modo prueba: lo que registres se guarda solo en este navegador. Conecta la hoja de Google en Resumen.'; }
+  else if (n) { e.className = 'demo'; e.textContent = n + (n === 1 ? ' registro por enviar' : ' registros por enviar') + ' a la hoja. ' + (Store.error ? 'No hubo conexión; se reintenta solo.' : 'Enviando…'); }
+  else { e.className = 'demo ok'; e.textContent = 'Conectada: todo está guardado en la hoja de Google.'; }
+}
 
 /* ---------- índice: estado de cada local calculado desde las visitas ---------- */
 let LOC = {}, TODOS = [], IDX = {};
@@ -124,7 +178,7 @@ function rivalDe(l) { // solo contra el mismo tipo exacto, y solo con datos que 
 }
 function vFicha(l) {
   const i = IDX[l.id] || {vis: []}, b = S.b, c = rivalDe(l);
-  const mapa = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(l.n + ' ' + (l.dir || '') + ' Providencia');
+  const mapa = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(l.n + ' ' + (l.dir || '') + ' Santiago'); // el sector cruza Providencia y Ñuñoa
   let h = `<button class="back" data-tab="locales">‹ Volver a la lista</button><h1>${esc(l.n)}</h1><p class="sub">${esc(l.tipoN)} · ${FAM[l.fam]}${l.dir ? ' · ' + esc(l.dir) : ''}</p>
   <div class="row">${i.ult ? chip(EST[i.ult.resultado]) : chip(['Sin visitar','c-idle'])}<a href="${mapa}" target="_blank" rel="noopener">Abrir en Google Maps</a></div>
   <div class="card"><div class="label">Lo que ves hoy en Google Maps</div>
@@ -172,8 +226,11 @@ function vResumen() {
   <div class="card"><h2>Por familia</h2>${Object.keys(fam).length ? `<table><thead><tr><th>Familia</th><th class="n">Visitados</th><th class="n">Ventas</th></tr></thead><tbody>${Object.entries(fam).map(([k, f]) => `<tr><td>${FAM[k] || k}</td><td class="n">${f[0]}</td><td class="n">${f[1]}</td></tr>`).join('')}</tbody></table>` : '<p class="sub">Sin visitas todavía.</p>'}</div>
   <div class="card"><h2>Reseñas antes y después</h2>${casos.length ? `<table><thead><tr><th>Local</th><th class="n">Antes</th><th class="n">Después</th></tr></thead><tbody>${casos.map(c => `<tr><td>${esc(c[0])}</td><td class="n">${esc(c[1])}</td><td class="n">${esc(c[2])}</td></tr>`).join('')}</tbody></table>` : '<p class="sub">Aparecen aquí al registrar la primera venta.</p>'}</div>
   <div class="card"><h2>Respaldo</h2><p class="sub">Descarga todas las visitas en un archivo que Excel abre directo.</p>
-    <button class="btn block" data-csv="1">Descargar visitas (CSV)</button>
-    ${S.borrar ? `<p class="sub">Esto borra todas las visitas y los locales agregados de este navegador. No se puede deshacer.</p><div class="row"><button class="btn danger" data-borrar="si">Sí, borrar todo</button><button class="btn" data-borrar="no">Cancelar</button></div>` : `<button class="btn block danger" data-borrar="pedir">Borrar datos de prueba</button>`}</div>`;
+    <button class="btn block" data-csv="1">Descargar visitas (CSV)</button></div>
+  <div class="card"><h2>Hoja de Google</h2>${Store.cfg
+    ? `<p class="sub">Conectada. Cada visita se envía sola a la hoja; los Excel se descargan desde ahí.</p><div class="row"><button class="btn small" data-sync="1">Sincronizar ahora</button><button class="btn small danger" data-desconectar="1">Desconectar</button></div>`
+    : `<p class="sub">Pega la dirección que te dio Google al publicar el puente y la clave del menú "Ventas NFC > Ver clave".</p>${inp('cfgUrl', 'Dirección del puente', 'url', 'placeholder="https://script.google.com/macros/s/…/exec"')}${inp('cfgClave', 'Clave', 'password', 'autocomplete="off"')}<button class="btn primary block" data-conectar="1">Conectar</button>`}
+    ${Store.cfg ? '' : S.borrar ?`<p class="sub">Esto borra todas las visitas y los locales agregados de este navegador. No se puede deshacer.</p><div class="row"><button class="btn danger" data-borrar="si">Sí, borrar todo</button><button class="btn" data-borrar="no">Cancelar</button></div>` : `<button class="btn block danger" data-borrar="pedir">Borrar datos de prueba</button>`}</div>`;
 }
 
 /* ---------- dibujar ---------- */
@@ -199,7 +256,7 @@ function guardarVisita(resultado) {
   if ((resultado === 'volver' || resultado === 'perfil') && !b.volverFecha) return toast('Falta el día para volver.');
   const agenda = resultado === 'volver' || resultado === 'perfil';
   Store.agregarVisita({
-    id: ahora.getTime(), fecha: iso(ahora) + ' ' + pad(ahora.getHours()) + ':' + pad(ahora.getMinutes()),
+    id: String(ahora.getTime()), fecha: iso(ahora) + ' ' + pad(ahora.getHours()) + ':' + pad(ahora.getMinutes()),
     localId: l.id, local: l.n, familia: FAM[l.fam], tipo: l.tipoN, direccion: l.dir || '', resultado,
     motivo: resultado === 'no' ? b.motivo : '',
     volverFecha: agenda ? b.volverFecha : '', volverHora: resultado === 'volver' ? b.volverHora : '', quien: agenda ? b.quien : '',
@@ -246,6 +303,16 @@ document.addEventListener('click', e => {
     return;
   }
   if (d.csv) { if (!Store.datos.visitas.length) return toast('Todavía no hay visitas que descargar.'); return descargarCSV(); }
+  if (d.conectar) {
+    const url = (S.b.cfgUrl || '').trim(), clave = (S.b.cfgClave || '').trim();
+    if (!/^https?:\/\//.test(url) || !clave) return toast('Faltan la dirección del puente y la clave.');
+    toast('Probando la conexión…');
+    Store.conectar(url, clave).then(() => { S.b = {}; render(); toast(Store.error ? 'Conectada, pero quedaron registros por enviar.' : 'Conectada a la hoja de Google.'); })
+      .catch(err => toast(err.message === 'clave' ? 'La clave no coincide con la de la hoja.' : 'No se pudo conectar. Revisa la dirección y que el puente esté publicado para "Cualquier usuario".'));
+    return;
+  }
+  if (d.sync) { toast('Sincronizando…'); Store.sincronizar().then(() => Store.error ? null : Store.bajar()).then(() => { render(); toast(Store.error ? 'Sin conexión. Se reintenta solo.' : 'Al día con la hoja.'); }).catch(() => toast('No se pudo leer la hoja.')); return; }
+  if (d.desconectar) { Store.desconectar(); aviso(); render(); return toast('Desconectada. Los datos siguen en este navegador y en la hoja.'); }
   if (d.borrar) { if (d.borrar === 'si') { Store.borrarTodo(); toast('Datos borrados.'); } S.borrar = d.borrar === 'pedir'; return render(); }
 });
 document.addEventListener('input', e => {
@@ -257,5 +324,9 @@ document.addEventListener('change', e => { // al salir de estos campos se redibu
   if (S.localId && ['resenas', 'perfil'].includes(e.target.dataset.f)) render();
 });
 
-Store.cargar(); indexar(); render();
+Store.cargar(); indexar(); render(); aviso();
+// Al abrir: primero sube lo pendiente y después trae lo que haya en la hoja (por si se usó otro teléfono).
+if (Store.cfg) Store.sincronizar().then(() => Store.error ? null : Store.bajar()).then(() => { if (!S.localId && !S.agregando) render(); }).catch(() => {});
+window.addEventListener('online', () => Store.sincronizar());
+document.addEventListener('visibilitychange', () => { if (!document.hidden) Store.sincronizar(); });
 })();

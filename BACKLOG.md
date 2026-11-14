@@ -2,9 +2,12 @@
 
 ## Pendiente acordado
 - **Etapa A, lo que falta:**
-  - Conectar la hoja de Google (Apps Script) y crear las pestañas calculadas. Falta decidir de quién es la hoja.
+  - Hoja real conectada el 2026-11-14 (confirmado por Bastián), en su cuenta. Falta revisar con datos
+    de verdad que las pestañas Seguimiento, Rendición, Motivos y Casos se calculen bien. Al traspasarla al primo hay que volver a publicar el Apps Script desde su cuenta y
+    actualizar la dirección en la app (el script publicado corre a nombre de quien lo publicó).
   - Publicar la app para abrirla en el teléfono (la ubicación solo funciona en una dirección https).
-  - Confirmar el sector real de venta; hoy la lista es Manuel Montt con Providencia.
+  - Sector ampliado el 2026-11-14 a 2.510 locales. 698 no traen dirección en OpenStreetMap: se ubican
+    por cercanía, no por calle.
   - Revisar con el primo la clasificación: hay cadenas dentro de familias vendibles (farmacias, comida rápida).
 - Mostrarle al primo el preview navegable (`preview/index.html`, publicado como artefacto) y recoger su
   opinión con la pestaña "Opinión", antes de construir.

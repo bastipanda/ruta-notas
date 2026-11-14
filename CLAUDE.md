@@ -10,8 +10,12 @@ El producto (tarjetas NFC) lo eligió el grupo por votación y no se cambia.
 ## Estado (2026-11-14)
 Versión 1.0 en construcción, por etapas: **A** lista real + registro (en curso), **B** nota y reseñas en
 vivo desde Google Maps, **C** guiones por familia, encuesta y mini diagnóstico.
-Hecho de la etapa A: app funcionando en modo prueba (guarda en el navegador) con 627 locales reales.
-Falta de la etapa A: conectar la hoja de Google y publicar la app para abrirla en el teléfono.
+Hecho de la etapa A: app funcionando en modo prueba (guarda en el navegador) con 2.510 locales reales.
+Sector: parte en Manuel Montt y avanza hacia Pedro de Valdivia y más allá, y hacia el sur. La lista cubre
+desde Manuel Montt hasta pasado Los Leones, y desde Andrés Bello hasta Irarrázaval (Providencia y Ñuñoa).
+La hoja de Google será de Bastián al inicio y después se traspasa al primo.
+La app ya sabe enviar a la hoja (probado contra un servidor falso). Falta de la etapa A: que Bastián cree
+la hoja y publique el puente (pasos abajo), probar con la hoja real y publicar la app para el teléfono.
 
 ## Archivos
 - `index.html`, `estilos.css`, `app.js`: la app. Sin instalaciones ni librerías.
@@ -20,10 +24,29 @@ Falta de la etapa A: conectar la hoja de Google y publicar la app para abrirla e
 - `herramientas/preparar-locales.js`: convierte lo de OpenStreetMap en la lista base y asigna familias.
 - `preview/`: maqueta inicial con datos inventados (publicada como artefacto). Queda de referencia.
 
+- `apps-script/Codigo.gs`: el puente. Se pega dentro de la hoja de Google (Extensiones > Apps Script).
+
 ## Cómo está armada la app
 Cada visita se guarda una sola vez como una fila (fecha, local, resultado, motivo, cuándo volver, reseñas,
-venta). El estado de cada local, la pantalla Hoy y el Resumen se calculan desde esas filas. El guardado
-está aislado en el objeto `Store` de `app.js`: para pasar a la hoja de Google solo se cambia eso.
+venta). El estado de cada local, la pantalla Hoy y el Resumen se calculan desde esas filas.
+
+Guardado (objeto `Store` en `app.js`): primero en el navegador y en una cola de "por enviar"; la cola se
+vacía sola hacia la hoja cuando hay señal. Al abrir, la app sube lo pendiente y baja lo que haya en la hoja.
+
+Puente (`Codigo.gs`): recibe cada visita, la agrega a la pestaña "Visitas" (sin duplicar si se reintenta)
+y recalcula las pestañas Seguimiento, Rendición, Motivos y Casos. Se calculan con código y no con
+fórmulas, porque las fórmulas cambian de escritura según el idioma de la hoja.
+
+Secretos: la clave del puente vive en las propiedades del script (Google) y en el navegador del teléfono.
+La dirección del puente tampoco va en el código: se pega en Resumen > Hoja de Google.
+
+## Cómo conectar la hoja (una vez por cuenta)
+1. Crear una hoja de Google nueva. Extensiones > Apps Script, pegar `apps-script/Codigo.gs`, guardar.
+2. Recargar la hoja. Menú "Ventas NFC" > "Preparar hoja" (pide autorización la primera vez; repetir).
+3. En Apps Script: Implementar > Nueva implementación > Aplicación web, ejecutar como "Yo", acceso
+   "Cualquier usuario". Copiar la dirección que termina en `/exec`.
+4. En la app: Resumen > Hoja de Google, pegar dirección y clave, Conectar.
+Si se cambia `Codigo.gs`, hay que publicar una versión nueva en Implementar > Gestionar implementaciones.
 
 ## Principio de diseño
 La app no vende; venden ciertos hábitos. Cada pantalla existe para forzar uno:
