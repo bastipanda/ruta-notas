@@ -1,0 +1,271 @@
+<title>Ventas NFC Preview</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap">
+<style>
+/* Layout: una columna de ancho teléfono, barra de pestañas fija abajo, una pantalla a la vez. */
+:root{
+  --bg:#f3f5f7; --surface:#ffffff; --ink:#14212b; --muted:#5b6b78; --line:#d9e0e6;
+  --brand:#0b5c6b; --brand-ink:#ffffff; --brand-soft:#dff0f2;
+  --star:#b77400; --ok:#1d7a46; --ok-soft:#dcf1e4; --warn:#a85b00; --warn-soft:#fbead0;
+  --bad:#b3322b; --bad-soft:#f8dedb; --idle-soft:#e6ebef;
+  --display:"Space Grotesk","Segoe UI",system-ui,sans-serif;
+  --body:"Inter","Segoe UI",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0f171d; --surface:#18232b; --ink:#e8eef2; --muted:#9aabb8; --line:#2b3a45;
+  --brand:#58c2d1; --brand-ink:#06252b; --brand-soft:#173840;
+  --star:#f0b445; --ok:#5fd08f; --ok-soft:#163626; --warn:#f0a94e; --warn-soft:#3a2a12;
+  --bad:#f08a82; --bad-soft:#3d1c19; --idle-soft:#22303a; color-scheme:dark } }
+:root[data-theme="dark"]{
+  --bg:#0f171d; --surface:#18232b; --ink:#e8eef2; --muted:#9aabb8; --line:#2b3a45;
+  --brand:#58c2d1; --brand-ink:#06252b; --brand-soft:#173840;
+  --star:#f0b445; --ok:#5fd08f; --ok-soft:#163626; --warn:#f0a94e; --warn-soft:#3a2a12;
+  --bad:#f08a82; --bad-soft:#3d1c19; --idle-soft:#22303a; color-scheme:dark }
+
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45}
+*{box-sizing:border-box}
+.app{max-width:460px;margin:0 auto;padding-block:12px 96px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  display:flex;flex-direction:column;gap:14px}
+.demo{background:var(--warn-soft);color:var(--warn);border-radius:8px;padding:8px 12px;font-size:13px;font-weight:500}
+h1{font-family:var(--display);font-size:24px;line-height:1.15;margin:0;text-wrap:balance}
+h2{font-family:var(--display);font-size:17px;margin:0;text-wrap:balance}
+.sub{color:var(--muted);font-size:13px;margin:0}
+.label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.stack{display:flex;flex-direction:column;gap:10px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.between{justify-content:space-between}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.item{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:6px;
+  width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer}
+.item:hover{border-color:var(--brand)}
+.item strong{font-weight:600}
+.item .meta{min-width:0}
+.rating{font-variant-numeric:tabular-nums;color:var(--star);font-weight:600;white-space:nowrap}
+.rating span{color:var(--muted);font-weight:400}
+.chip{display:inline-block;border-radius:999px;padding:2px 9px;font-size:12px;font-weight:600;white-space:nowrap}
+.c-ok{background:var(--ok-soft);color:var(--ok)} .c-warn{background:var(--warn-soft);color:var(--warn)}
+.c-bad{background:var(--bad-soft);color:var(--bad)} .c-idle{background:var(--idle-soft);color:var(--muted)}
+.c-brand{background:var(--brand-soft);color:var(--brand)}
+button{font:inherit}
+.btn{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:10px;padding:12px 14px;font-weight:600;cursor:pointer;text-align:center}
+.btn.primary{background:var(--brand);border-color:var(--brand);color:var(--brand-ink)}
+.btn.block{width:100%}
+.btn.ghost{background:transparent;color:var(--brand);border-style:dashed}
+.btn.small{padding:7px 10px;font-size:13px}
+.back{background:none;border:0;color:var(--brand);font-weight:600;padding:4px 0;cursor:pointer;align-self:flex-start}
+:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+.three{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.three .btn{padding:16px 6px}
+.b-ok{background:var(--ok-soft);color:var(--ok);border-color:transparent}
+.b-warn{background:var(--warn-soft);color:var(--warn);border-color:transparent}
+.b-bad{background:var(--bad-soft);color:var(--bad);border-color:transparent}
+.opts{display:flex;flex-wrap:wrap;gap:8px}
+.opt{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:8px 12px;font-size:13px;font-weight:500;cursor:pointer}
+.opt[aria-pressed="true"]{background:var(--brand);border-color:var(--brand);color:var(--brand-ink)}
+label.f{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted);font-weight:500;flex:1 1 130px;min-width:0}
+input,select,textarea{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px;width:100%}
+textarea{min-height:70px;resize:vertical}
+.quote{background:var(--brand-soft);border-radius:10px;padding:12px 14px;font-size:15px}
+.quote p{margin:0 0 8px} .quote p:last-child{margin:0}
+.bar{display:grid;grid-template-columns:minmax(0,1fr) 44px;gap:8px;align-items:center;font-size:13px}
+.bar .track{height:10px;border-radius:5px;background:var(--idle-soft);overflow:hidden}
+.bar .fill{height:100%;border-radius:5px;background:var(--brand)}
+.bar .fill.rival{background:var(--star)}
+.bar b{text-align:right;font-variant-numeric:tabular-nums}
+.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px}
+.stat b{font-family:var(--display);font-size:26px;display:block;font-variant-numeric:tabular-nums;line-height:1.1}
+.stat span{font-size:12px;color:var(--muted)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:left;padding:7px 4px;border-bottom:1px solid var(--line)}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+details{border-top:1px solid var(--line);padding-top:8px}
+summary{font-weight:600;cursor:pointer}
+details p{margin:8px 0 0;color:var(--muted)}
+nav{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  padding-left:max(8px,env(safe-area-inset-left,0px));padding-right:max(8px,env(safe-area-inset-right,0px));z-index:5}
+nav div{max-width:460px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr)}
+nav button{background:none;border:0;color:var(--muted);padding:9px 2px 8px;font-size:11px;font-weight:600;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;gap:3px}
+nav button svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+nav button[aria-current="page"]{color:var(--brand)}
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));
+  background:var(--ink);color:var(--bg);padding:10px 14px;border-radius:10px;font-size:13px;max-width:min(90vw,420px);z-index:9;text-align:center}
+</style>
+
+<div class="app">
+  <div class="demo">Preview para opinar. Todos los locales y números son inventados, y nada se guarda.</div>
+  <main id="view" class="stack"></main>
+</div>
+<nav aria-label="Pantallas"><div id="tabs"></div></nav>
+<div id="toast" hidden role="status"></div>
+
+<script>
+const RUBROS={pelu:'Peluquería o barbería',cafe:'Café o restaurante',taller:'Taller',vet:'Veterinaria',salud:'Salud o estética',tienda:'Tienda',otro:'Otro'};
+const MOMENTO={pelu:'al terminar el corte, frente al espejo',cafe:'al traer la cuenta',taller:'al entregar el auto',vet:'al despedir a la mascota',salud:'en recepción, al pagar',tienda:'en la caja, al entregar la bolsa',otro:'al despedir al cliente'};
+const SIT={pocas:['Pocas reseñas','c-ok'],notabaja:['Nota baja','c-warn'],sinperfil:['Sin perfil en Google','c-brand'],bien:['Ya bien posicionado','c-idle']};
+const EST={vendido:['Vendido','c-ok'],volver:['Volver','c-warn'],no:['Dijo que no','c-bad'],perfil:['Perfil en verificación','c-brand']};
+const MOTIVOS=['Muy caro','No usa Google','Ya tiene algo parecido','No decide aquí','Sin tiempo','Otro'];
+const L=[
+ {id:1,n:'Barbería Don Lucho',r:'pelu',d:'Manuel Montt 142',nota:4.6,res:23,perfil:true,estado:'vendido',antes:23,control:'hoy'},
+ {id:2,n:'Café Tostado Lento',r:'cafe',d:'Manuel Montt 168',nota:4.1,res:23,perfil:true,estado:'volver',cuando:'Hoy 16:00',quien:'Carla (dueña)'},
+ {id:3,n:'Veterinaria Patitas',r:'vet',d:'Manuel Montt 201',nota:4.7,res:12,perfil:true},
+ {id:4,n:'Almacén Doña Rosa',r:'tienda',d:'Manuel Montt 215',nota:4.4,res:8,perfil:true},
+ {id:5,n:'Taller Rueda Libre',r:'taller',d:'Manuel Montt 233',nota:3.8,res:41,perfil:true},
+ {id:6,n:'Centro Dental Sonrisa Clara',r:'salud',d:'Providencia 1310',nota:4.3,res:37,perfil:true,estado:'no',motivo:'Muy caro'},
+ {id:7,n:'Tienda Hilo y Botón',r:'tienda',d:'Manuel Montt 188',nota:null,res:0,perfil:false,estado:'perfil',cuando:'Martes',quien:'Don Sergio'},
+ {id:8,n:'Café La Esquina Azul',r:'cafe',d:'Providencia 1296',nota:4.6,res:310,perfil:true},
+ {id:9,n:'Barbería Filo',r:'pelu',d:'Manuel Montt 120',nota:4.9,res:198,perfil:true},
+ {id:10,n:'Peluquería Estilo Nova',r:'pelu',d:'Providencia 1342',nota:4.8,res:520,perfil:true},
+ {id:11,n:'Clínica Dental Montt',r:'salud',d:'Manuel Montt 96',nota:4.7,res:164,perfil:true}
+];
+const BASE={visitas:38,ventas:7,ingresos:84000,motivos:{'Muy caro':9,'No decide aquí':6,'No usa Google':5,'Sin tiempo':4,'Ya tiene algo parecido':2}};
+const CASOS=[['Café Molienda',18,44],['Veterinaria Huellas',9,27]];
+const PANTALLAS=['Hoy','Locales cerca','Ficha del local','Resultado de la visita','Guion','Resumen y Excel'];
+const S={tab:'hoy',local:null,paso:null,motivo:null,consultas:3,gr:'cafe',gs:'pocas',op:{},nuevoId:12};
+
+const $=s=>document.querySelector(s);
+const esc=t=>String(t??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const sit=l=>!l.perfil?'sinperfil':l.nota<4.2?'notabaja':l.res<50?'pocas':'bien';
+const orden={pocas:0,notabaja:1,sinperfil:2,bien:3};
+const chip=(p)=>`<span class="chip ${p[1]}">${p[0]}</span>`;
+const stars=l=>l.perfil?`<span class="rating">★ ${l.nota.toFixed(1)} <span>(${l.res})</span></span>`:'<span class="sub">No aparece en Google</span>';
+function rival(l){return L.filter(x=>x.id!==l.id&&x.perfil&&x.r===l.r).sort((a,b)=>b.res-a.res)[0]||null;}
+function toast(t){const e=$('#toast');e.textContent=t;e.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>e.hidden=true,2600);}
+
+function guion(r,s,l,c){
+  const n=l?esc(l.n):'su local', cn=c?esc(c.n):'el local más visible de la cuadra', a=l?l.res:23, b=c?c.res:310, nota=l&&l.nota?l.nota.toFixed(1):'3,8';
+  const cuerpo={
+   pocas:(l&&!c)?`<p>Antes de entrar busqué ${n} en Google Maps: tienen <b>${a} reseñas</b>.</p><p>Con tan pocas, quien los encuentra en el mapa no alcanza a confiar, aunque ustedes atiendan bien.</p>`
+     :`<p>Antes de entrar busqué ${n} en Google Maps: tienen <b>${a} reseñas</b>. ${cn} tiene <b>${b}</b>.</p><p>Quien compara en el mapa elige al que tiene más opiniones, aunque ustedes atiendan mejor.</p>`,
+   notabaja:`<p>${n} aparece con nota <b>${nota}</b> en Google. Casi siempre opina el cliente molesto; los contentos se van sin decir nada.</p><p>La idea es que el cliente contento opine antes de salir, en diez segundos.</p>`,
+   sinperfil:`<p>Busqué ${n} en Google Maps y no aparece. Quien busca un local como este por aquí cerca hoy encuentra a ${cn}.</p><p>Crear el perfil es gratis. Lo dejamos iniciado ahora, con su cuenta, en diez minutos, y vuelvo cuando Google lo verifique.</p>`,
+   bien:`<p>${n} ya está bien en Google: nota ${nota} con ${a} reseñas. La tarjeta sirve para no perder el ritmo.</p><p>Prioridad baja: si no hay interés rápido, seguir con el siguiente local.</p>`}[s];
+  return cuerpo+(s==='sinperfil'?'':`<p>Esta tarjeta se acerca al teléfono y abre directo la reseña. ¿Me presta el suyo para mostrarle? El mejor momento para pedirla es <b>${MOMENTO[r]}</b>.</p>`);
+}
+
+/* ---------- pantallas ---------- */
+function vHoy(){
+  const volver=L.filter(l=>l.estado==='volver'), ctrl=L.filter(l=>l.estado==='vendido'&&l.control==='hoy'), perf=L.filter(l=>l.estado==='perfil');
+  const hechas=L.filter(l=>l.hoy).length, ventas=L.filter(l=>l.hoy&&l.estado==='vendido').length;
+  return `<h1>Hoy</h1><p class="sub">Lo que no puede quedar sin hacer antes de salir a tocar puertas nuevas.</p>
+  <div class="stats"><div class="stat"><b>${hechas}</b><span>visitas registradas hoy</span></div><div class="stat"><b>${ventas}</b><span>ventas hoy</span></div></div>
+  <div class="label">Volver hoy</div>${volver.map(l=>`<button class="item" data-open="${l.id}"><div class="row between"><strong>${esc(l.n)}</strong>${chip(['Volver','c-warn'])}</div><div class="sub">${esc(l.cuando)} · preguntar por ${esc(l.quien)} · ${esc(l.d)}</div></button>`).join('')||'<p class="sub">Nadie agendado para hoy.</p>'}
+  <div class="label">Control antes y después</div>${ctrl.map(l=>`<div class="card"><div class="row between"><strong>${esc(l.n)}</strong>${chip(['Vendido hace 3 semanas','c-ok'])}</div><p class="sub">Tenía ${l.antes} reseñas al vender. Pasa a mirar cuántas tiene ahora.</p><div class="row"><label class="f">Reseñas hoy<input id="ctrl-${l.id}" type="number" inputmode="numeric" placeholder="ej. 41"></label><button class="btn primary" data-ctrl="${l.id}">Guardar caso</button></div></div>`).join('')||'<p class="sub">Sin controles pendientes.</p>'}
+  <div class="label">Perfiles en verificación</div>${perf.map(l=>`<button class="item" data-open="${l.id}"><div class="row between"><strong>${esc(l.n)}</strong>${chip(EST.perfil)}</div><div class="sub">Volver el ${esc(l.cuando)} · ${esc(l.quien)}</div></button>`).join('')||'<p class="sub">Ninguno.</p>'}
+  <button class="btn primary block" data-tab="cerca">Ver locales cerca</button>`;
+}
+function vCerca(){
+  const lista=[...L].sort((a,b)=>orden[sit(a)]-orden[sit(b)]||a.res-b.res);
+  return `<h1>Locales cerca</h1><p class="sub">Av. Manuel Montt con Providencia. Ordenados por oportunidad: primero los que más ganan con la tarjeta.</p>
+  <div class="row between"><button class="btn small" data-buscar="1">Buscar de nuevo aquí</button><span class="sub">Consultas a Google hoy: ${S.consultas} de 25</span></div>
+  ${lista.map(l=>`<button class="item" data-open="${l.id}"><div class="row between"><strong class="meta">${esc(l.n)}</strong>${stars(l)}</div><div class="sub">${RUBROS[l.r]} · ${esc(l.d)}</div><div class="row">${chip(SIT[sit(l)])}${l.estado?chip(EST[l.estado]):''}</div></button>`).join('')}
+  <button class="btn ghost block" data-nuevo="1">El local donde estoy no aparece en la lista</button>`;
+}
+function vFicha(l){
+  const c=rival(l), s=sit(l), max=Math.max(l.res,c?c.res:0,1);
+  let h=`<button class="back" data-volver="1">‹ Volver a la lista</button><h1>${esc(l.n)}</h1><p class="sub">${RUBROS[l.r]} · ${esc(l.d)}</p><div class="row">${chip(SIT[s])}${l.estado?chip(EST[l.estado]):''}</div>`;
+  if(l.cuando) h+=`<div class="card"><div class="label">Anotado</div><div>${esc(l.cuando)} · preguntar por ${esc(l.quien||'—')}</div></div>`;
+  if(l.perfil) h+=`<div class="card"><div class="label">Reseñas en Google</div>
+    <div class="bar"><div><div>${esc(l.n)} · ★ ${l.nota.toFixed(1)}</div><div class="track"><div class="fill" style="width:${l.res/max*100}%"></div></div></div><b>${l.res}</b></div>
+    ${c?`<div class="bar"><div><div>${esc(c.n)} · ★ ${c.nota.toFixed(1)} (mismo rubro)</div><div class="track"><div class="fill rival" style="width:${c.res/max*100}%"></div></div></div><b>${c.res}</b></div>`
+       :'<p class="sub">No hay otro local del mismo rubro en esta cuadra. La app no compara contra rubros distintos.</p>'}</div>`;
+  h+=`<div class="card"><div class="label">Qué decir aquí</div><div class="quote">${guion(l.r,s,l,c)}</div></div>`;
+  if(S.paso==='vendido') h+=`<div class="card"><h2>Venta</h2><div class="row"><label class="f">Tarjetas<input id="v-cant" type="number" value="1" inputmode="numeric"></label><label class="f">Precio total ($)<input id="v-precio" type="number" value="12000" inputmode="numeric"></label></div>
+    <label class="f">Reseñas que tiene hoy (queda como el "antes")<input id="v-antes" type="number" value="${l.res}" inputmode="numeric"></label>
+    <div class="label">Déjale esta frase al local</div><div class="quote"><p>"Si le gustó la atención, ¿nos ayuda con una reseña? Acerque su teléfono aquí, son diez segundos."</p></div>
+    <p class="sub">La app agenda sola el control de reseñas para tres semanas más.</p><button class="btn primary block" data-guardar="vendido">Guardar venta</button></div>`;
+  else if(S.paso==='volver') h+=`<div class="card"><h2>Volver</h2><div class="row"><label class="f">Día<select id="r-dia"><option>Mañana</option><option>Jueves</option><option>Viernes</option><option>Lunes</option></select></label><label class="f">Hora<input id="r-hora" type="time" value="16:00"></label></div>
+    <label class="f">Preguntar por<input id="r-quien" placeholder="ej. Carla, la dueña"></label><label class="f">Nota<input id="r-nota" placeholder="ej. le interesó la demo"></label><button class="btn primary block" data-guardar="volver">Agendar</button></div>`;
+  else if(S.paso==='no') h+=`<div class="card"><h2>Dijo que no</h2><div class="label">Motivo principal</div><div class="opts">${MOTIVOS.map(m=>`<button class="opt" aria-pressed="${S.motivo===m}" data-motivo="${m}">${m}</button>`).join('')}</div>
+    <div class="label">Antes de irte</div><div class="quote"><p>"Gracias por su tiempo. Esto es parte de un proyecto de la universidad, ¿me ayuda con tres preguntas cortas? A cambio le muestro cómo se ve su local en Google frente a los de la cuadra."</p></div>
+    <label class="f">1. ¿Cómo llegan hoy sus clientes nuevos?<select id="e-1"><option>No respondió</option><option>Pasan por fuera</option><option>Recomendación</option><option>Redes sociales</option><option>Google Maps</option></select></label>
+    <label class="f">2. ¿Ha pedido reseñas alguna vez?<select id="e-2"><option>No respondió</option><option>Nunca</option><option>A veces, de palabra</option><option>Sí, con algún sistema</option></select></label>
+    <label class="f">3. ¿Qué tendría que pasar para que le sirviera?<input id="e-3" placeholder="en sus palabras"></label>
+    <button class="btn primary block" data-guardar="no">Guardar</button></div>`;
+  else if(S.paso==='perfil') h+=`<div class="card"><h2>Crear perfil en Google</h2><p class="sub">Siempre con la cuenta del dueño. Tú no tocas sus contraseñas.</p>
+    <label class="row"><input type="checkbox" id="p-1" style="width:auto"> Perfil iniciado con el dueño</label><label class="row"><input type="checkbox" id="p-2" style="width:auto"> Verificación de Google solicitada</label>
+    <div class="row"><label class="f">Volver el<select id="p-dia"><option>Martes</option><option>Jueves</option><option>Próxima semana</option></select></label><label class="f">Preguntar por<input id="p-quien" placeholder="nombre"></label></div>
+    <button class="btn primary block" data-guardar="perfil">Guardar seguimiento</button></div>`;
+  else h+=`<div class="label">¿Cómo te fue?</div>${l.perfil?'':'<button class="btn primary block" data-paso="perfil">Ayudarle a crear su perfil</button>'}
+    <div class="three"><button class="btn b-ok" data-paso="vendido">Vendido</button><button class="btn b-warn" data-paso="volver">Volver</button><button class="btn b-bad" data-paso="no">No</button></div>`;
+  return h;
+}
+function vGuion(){
+  const o=(obj,sel,k)=>Object.entries(obj).map(([v,t])=>`<option value="${v}" ${v===sel?'selected':''}>${k?t[0]:t}</option>`).join('');
+  return `<h1>Guion</h1><p class="sub">Para ensayar antes de salir. En la ficha de cada local aparece ya armado con sus números.</p>
+  <div class="row"><label class="f">Rubro<select id="g-r">${o(RUBROS,S.gr)}</select></label><label class="f">Situación<select id="g-s">${o(SIT,S.gs,1)}</select></label></div>
+  <div class="card"><div class="label">Qué decir</div><div class="quote">${guion(S.gr,S.gs)}</div></div>
+  <div class="card"><h2>Si te dicen…</h2>
+   <details><summary>"Es muy caro"</summary><p>"¿Cuánto le deja un cliente nuevo? Con uno solo que llegue por Google la tarjeta está pagada."</p></details>
+   <details><summary>"No uso Google"</summary><p>"Usted no, pero sus clientes sí: buscan en el mapa antes de venir. Mire, así aparece hoy su local."</p></details>
+   <details><summary>"Y si me ponen una mala reseña"</summary><p>"Las malas llegan igual, con o sin tarjeta. Esto hace que también opinen los contentos, que son la mayoría."</p></details>
+   <details><summary>"Déjeme pensarlo"</summary><p>"Claro. ¿Qué día y a qué hora le acomoda que pase de nuevo?" y agendar en Volver.</p></details></div>
+  <div class="card"><h2>Lo que no se ofrece</h2><p class="sub">Nada de descuentos o regalos a cambio de reseñas, ni pedirlas solo a clientes contentos. Google lo prohíbe y puede borrarlas.</p></div>`;
+}
+function vResumen(){
+  const hoy=L.filter(l=>l.hoy), v=BASE.visitas+hoy.length, ve=BASE.ventas+hoy.filter(l=>l.estado==='vendido').length;
+  const ing=BASE.ingresos+hoy.reduce((a,l)=>a+(l.precio||0),0), m={...BASE.motivos};
+  hoy.forEach(l=>{if(l.estado==='no'&&l.motivo)m[l.motivo]=(m[l.motivo]||0)+1});
+  const mm=Object.entries(m).sort((a,b)=>b[1]-a[1]), max=mm[0][1];
+  return `<h1>Resumen</h1><p class="sub">Lo mismo que sale en los Excel, para mirarlo rápido.</p>
+  <div class="stats"><div class="stat"><b>${v}</b><span>locales visitados</span></div><div class="stat"><b>${ve}</b><span>ventas</span></div>
+  <div class="stat"><b>${Math.round(ve/v*100)}%</b><span>de las visitas terminan en venta</span></div><div class="stat"><b>$${ing.toLocaleString('es-CL')}</b><span>ingresos</span></div></div>
+  <div class="card"><h2>Por qué dicen que no</h2>${mm.map(([k,n])=>`<div class="bar"><div><div>${k}</div><div class="track"><div class="fill" style="width:${n/max*100}%"></div></div></div><b>${n}</b></div>`).join('')}</div>
+  <div class="card"><h2>Casos antes y después</h2><table><thead><tr><th>Local</th><th class="n">Antes</th><th class="n">Después</th></tr></thead><tbody>${CASOS.map(c=>`<tr><td>${esc(c[0])}</td><td class="n">${c[1]}</td><td class="n">${c[2]}</td></tr>`).join('')}</tbody></table></div>
+  <div class="card"><h2>Descargar Excel</h2><div class="opts">${['Rendición al grupo','Seguimiento','Motivos del no','Casos'].map(x=>`<button class="btn small" data-excel="${x}">${x}</button>`).join('')}</div></div>`;
+}
+function vOpinion(){
+  return `<h1>Tu opinión</h1><p class="sub">Recorre las pantallas y marca qué harías con cada una. Al final copia el texto y mándaselo a Bastián.</p>
+  ${PANTALLAS.map((p,i)=>`<div class="card"><strong>${p}</strong><div class="opts">${['Sirve así','Hay que cambiarla','Sobra'].map(o=>`<button class="opt" aria-pressed="${S.op[i]===o}" data-op="${i}|${o}">${o}</button>`).join('')}</div><input id="op-c-${i}" placeholder="¿Qué le cambiarías?"></div>`).join('')}
+  <label class="f">¿Qué te falta que no esté en ninguna pantalla?<textarea id="op-falta"></textarea></label>
+  <label class="f">¿Qué harías distinto al vender, que la app no considera?<textarea id="op-venta"></textarea></label>
+  <button class="btn primary block" data-copiar="1">Copiar mi opinión</button>
+  <textarea id="op-out" hidden readonly aria-label="Tu opinión, lista para copiar"></textarea>`;
+}
+
+const TABS=[['hoy','Hoy','<path d="M4 7h16M4 12h16M4 17h10"/>'],['cerca','Cerca','<path d="M12 21s-6-5.5-6-10a6 6 0 1 1 12 0c0 4.500-6 10-6 10z"/><circle cx="12" cy="11" r="2"/>'],['guion','Guion','<path d="M5 5h14v10H9l-4 4z"/>'],['resumen','Resumen','<path d="M5 19V10M12 19V5M19 19v-7"/>'],['opinion','Opinión','<path d="M4 20l4-1 11-11-3-3L5 16z"/>']];
+function render(){
+  const l=S.local&&L.find(x=>x.id===S.local);
+  $('#view').innerHTML=l?vFicha(l):({hoy:vHoy,cerca:vCerca,guion:vGuion,resumen:vResumen,opinion:vOpinion}[S.tab])();
+  $('#tabs').innerHTML=TABS.map(t=>`<button data-tab="${t[0]}" ${S.tab===t[0]&&!l?'aria-current="page"':''}><svg viewBox="0 0 24 24" aria-hidden="true">${t[2]}</svg>${t[1]}</button>`).join('');
+}
+function go(tab){S.tab=tab;S.local=null;S.paso=null;render();window.scrollTo(0,0);}
+const val=id=>{const e=document.getElementById(id);return e?e.value:''};
+
+document.addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;const d=b.dataset;
+  if(d.tab)return go(d.tab);
+  if(d.open){S.local=+d.open;S.paso=null;S.motivo=null;render();return window.scrollTo(0,0);}
+  if(d.volver)return go('cerca');
+  if(d.paso){S.paso=d.paso;return render();}
+  if(d.motivo){S.motivo=d.motivo;b.parentNode.querySelectorAll('.opt').forEach(x=>x.setAttribute('aria-pressed',x===b));return;}
+  if(d.buscar){if(S.consultas>=25)return toast('Tope diario alcanzado. Sigue con ingreso a mano.');S.consultas++;render();return toast('En la app real esto trae los locales de esta cuadra desde Google Maps.');}
+  if(d.nuevo){const id=S.nuevoId++;L.push({id,n:'Local sin nombre en Google',r:'tienda',d:'Donde estás parado',nota:null,res:0,perfil:false});S.local=id;S.paso=null;render();return window.scrollTo(0,0);}
+  if(d.ctrl){const n=+val('ctrl-'+d.ctrl),l=L.find(x=>x.id==d.ctrl);if(!n)return toast('Anota cuántas reseñas tiene hoy.');CASOS.push([l.n,l.antes,n]);l.control=null;render();return toast(`Caso guardado: de ${l.antes} a ${n} reseñas.`);}
+  if(d.excel)return toast(`En la app real se descarga el Excel "${d.excel}".`);
+  if(d.op){const [i,o]=d.op.split('|');S.op[i]=o;b.parentNode.querySelectorAll('.opt').forEach(x=>x.setAttribute('aria-pressed',x===b));return;}
+  if(d.copiar){
+    const t=['Opinión sobre el preview de la app',...PANTALLAS.map((p,i)=>`- ${p}: ${S.op[i]||'sin marcar'}${val('op-c-'+i)?' ('+val('op-c-'+i)+')':''}`),'Me falta: '+(val('op-falta')||'—'),'Al vender haría distinto: '+(val('op-venta')||'—')].join('\n');
+    const out=$('#op-out');out.value=t;out.hidden=false;
+    const sel=()=>{out.focus();out.select();toast('Texto listo abajo: selecciónalo y cópialo.');};
+    try{navigator.clipboard.writeText(t).then(()=>toast('Copiado. Pégalo en WhatsApp.'),sel);}catch(_){sel();}
+    return;
+  }
+  if(d.guardar){
+    const l=L.find(x=>x.id===S.local);l.hoy=true;
+    if(d.guardar==='vendido'){l.estado='vendido';l.precio=+val('v-precio')||0;l.antes=+val('v-antes')||l.res;l.cuando=null;toast('Venta guardada. Control agendado para tres semanas más.');}
+    if(d.guardar==='volver'){l.estado='volver';l.cuando=val('r-dia')+' '+val('r-hora');l.quien=val('r-quien')||'el dueño';toast('Agendado. Aparecerá en Hoy ese día.');}
+    if(d.guardar==='no'){if(!S.motivo){l.hoy=false;return toast('Marca el motivo principal.');}l.estado='no';l.motivo=S.motivo;l.cuando=null;toast('Guardado. El motivo se suma al resumen.');}
+    if(d.guardar==='perfil'){l.estado='perfil';l.cuando=val('p-dia');l.quien=val('p-quien')||'el dueño';toast('Seguimiento guardado.');}
+    return go('cerca');
+  }
+});
+document.addEventListener('change',e=>{
+  if(e.target.id==='g-r'){S.gr=e.target.value;render();}
+  if(e.target.id==='g-s'){S.gs=e.target.value;render();}
+});
+render();
+</script>

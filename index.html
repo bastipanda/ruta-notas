@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ventas NFC</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap">
+<link rel="stylesheet" href="estilos.css">
+</head>
+<body>
+<div class="app">
+  <div class="demo" id="aviso">Modo prueba: lo que registres se guarda solo en este navegador. Todavía no va a la hoja de Google.</div>
+  <main id="view" class="stack"></main>
+</div>
+<nav aria-label="Pantallas"><div id="tabs"></div></nav>
+<div id="toast" hidden role="status"></div>
+<!-- Lista base de locales (OpenStreetMap). Se regenera con herramientas/preparar-locales.js -->
+<script src="datos/locales.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

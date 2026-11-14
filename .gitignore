@@ -1,0 +1,16 @@
+# Secretos: nunca al repositorio
+.env
+.env.*
+*.key
+credentials*.json
+.clasprc.json
+
+# Datos reales de locales y ventas (viven en Google Sheets, no acá)
+*.xlsx
+*.csv
+
+# Sistema y editores
+.DS_Store
+Thumbs.db
+.vscode/
+node_modules/
