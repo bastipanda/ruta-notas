@@ -1,9 +1,9 @@
 [out:json][timeout:60];
 (
- nwr["shop"]["name"](-33.4400,-70.6260,-33.4250,-70.6130);
- nwr["amenity"]["name"](-33.4400,-70.6260,-33.4250,-70.6130);
- nwr["craft"]["name"](-33.4400,-70.6260,-33.4250,-70.6130);
- nwr["healthcare"]["name"](-33.4400,-70.6260,-33.4250,-70.6130);
- nwr["leisure"~"fitness_centre|sports_centre|dance"]["name"](-33.4400,-70.6260,-33.4250,-70.6130);
+ nwr["shop"]["name"](-33.4550,-70.6260,-33.4180,-70.5980);
+ nwr["amenity"]["name"](-33.4550,-70.6260,-33.4180,-70.5980);
+ nwr["craft"]["name"](-33.4550,-70.6260,-33.4180,-70.5980);
+ nwr["healthcare"]["name"](-33.4550,-70.6260,-33.4180,-70.5980);
+ nwr["leisure"~"fitness_centre|sports_centre|dance"]["name"](-33.4550,-70.6260,-33.4180,-70.5980);
 );
 out tags center;
