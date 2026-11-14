@@ -9,6 +9,9 @@ const FAM = {comida:'Comida para sentarse', cafe:'Café y dulces', rapida:'Comid
 const EST = {vendido:['Vendido','c-ok'], volver:['Volver','c-warn'], no:['Dijo que no','c-bad'], perfil:['Perfil en trámite','c-brand']};
 const MOTIVOS = ['Muy caro','No usa Google','Ya tiene algo parecido','No decide aquí','Sin tiempo','No le interesa','Otro'];
 const DIAS_CONTROL = 21; // a las 3 semanas de vender se vuelve a contar las reseñas
+const SITS = {'pocas': 'Pocas reseñas', 'pocas-sin-rival': 'Pocas reseñas, sin competidor anotado', 'notabaja': 'Nota baja', 'sinperfil': 'No aparece en Google', 'bien': 'Ya bien posicionado', 'nfc': 'Ya tiene NFC', 'sin-datos': 'Sin datos todavía'};
+const ENC1 = ['No respondió', 'Pasan por fuera', 'Recomendación', 'Redes sociales', 'Google Maps', 'Otro'];
+const ENC2 = ['No respondió', 'Nunca', 'A veces, de palabra', 'Sí, con algún sistema'];
 
 /* ---------- utilidades ---------- */
 const $ = s => document.querySelector(s);
@@ -33,11 +36,11 @@ function metros(a, b) { // distancia aproximada, suficiente para ordenar locales
    La dirección del puente y la clave se guardan solo en este navegador, nunca en el código. */
 const CLAVE = 'ventas-nfc-v1', CLAVE_CFG = 'ventas-nfc-cfg';
 const Store = {
-  datos: {visitas: [], locales: [], pend: []},
+  datos: {visitas: [], locales: [], pend: [], guiones: []},
   cfg: null, ocupado: false, error: false,
   cargar() {
     try {
-      const t = localStorage.getItem(CLAVE); if (t) this.datos = Object.assign({visitas: [], locales: [], pend: []}, JSON.parse(t));
+      const t = localStorage.getItem(CLAVE); if (t) this.datos = Object.assign({visitas: [], locales: [], pend: [], guiones: []}, JSON.parse(t));
       const c = localStorage.getItem(CLAVE_CFG); if (c) this.cfg = JSON.parse(c);
     } catch (e) { this.falla = true; }
   },
@@ -45,7 +48,7 @@ const Store = {
   guardarCfg() { try { this.cfg ? localStorage.setItem(CLAVE_CFG, JSON.stringify(this.cfg)) : localStorage.removeItem(CLAVE_CFG); } catch (e) {} },
   agregarVisita(v) { this.datos.visitas.push(v); if (this.cfg) this.datos.pend.push({accion: 'visita', dato: v}); this.guardar(); indexar(); this.sincronizar(); },
   agregarLocal(l) { this.datos.locales.push(l); if (this.cfg) this.datos.pend.push({accion: 'local', dato: l}); this.guardar(); indexar(); this.sincronizar(); },
-  borrarTodo() { this.datos = {visitas: [], locales: [], pend: []}; this.guardar(); indexar(); },
+  borrarTodo() { this.datos = {visitas: [], locales: [], pend: [], guiones: this.datos.guiones}; this.guardar(); indexar(); },
 
   async llamar(cuerpo, cfg) {
     cfg = cfg || this.cfg;
@@ -73,11 +76,16 @@ const Store = {
     };
     this.datos.visitas = une(j.visitas, this.datos.visitas, 'visita').sort((a, b) => (a.fecha + a.id).localeCompare(b.fecha + b.id));
     this.datos.locales = une(j.locales.map(l => Object.assign(l, {lat: l.lat === '' ? null : +l.lat, lon: l.lon === '' ? null : +l.lon, manual: true})), this.datos.locales, 'local');
+    if (j.guiones) { this.datos.guiones = j.guiones; cargarGuiones(); } // lo editado en la pestaña "Guiones" manda
     this.guardar(); indexar();
+  },
+  async enviarGuiones() { // deja los textos base en la pestaña "Guiones" si está vacía; un puente antiguo lo ignora
+    try { await this.llamar({accion: 'guiones', lista: window.GUIONES_BASE || []}); } catch (e) {}
   },
   async conectar(url, clave) {
     await this.llamar({accion: 'ping'}, {url, clave}); // si la dirección o la clave están mal, falla aquí
     this.cfg = {url, clave}; this.guardarCfg();
+    await this.enviarGuiones();
     // lo registrado en modo prueba también sube a la hoja
     this.datos.pend = this.datos.locales.map(l => ({accion: 'local', dato: l})).concat(this.datos.visitas.map(v => ({accion: 'visita', dato: v})));
     this.guardar();
@@ -93,6 +101,32 @@ function aviso() { // franja de arriba: dice dónde están guardados los datos
   else { e.className = 'demo ok'; e.textContent = 'Conectada: todo está guardado en la hoja de Google.'; }
 }
 
+/* ---------- guiones ----------
+   El guion de un local = gancho de su familia + lo que dicen sus números (situación) + cierre.
+   Los textos base vienen de guiones.js; lo editado en la pestaña "Guiones" de la hoja los reemplaza. */
+let G = {};
+function cargarGuiones() {
+  G = {};
+  (window.GUIONES_BASE || []).forEach(g => G[g[0]] = g[2]);
+  (Store.datos.guiones || []).forEach(g => { if (g.clave && g.texto) G[g.clave] = g.texto; });
+}
+function txt(clave, vals) { // texto con los {datos} del local reemplazados y destacados
+  return esc(G[clave] || '').replace(/\{(\w+)\}/g, (m, k) => vals && vals[k] != null && vals[k] !== '' ? '<b>' + esc(vals[k]) + '</b>' : m);
+}
+function situacion(b, tieneRival) {
+  if (b.nfc) return 'nfc';
+  if (b.perfil === 'no') return 'sinperfil';
+  if (b.resenas === '' || b.resenas == null) return 'sin-datos';
+  if (b.nota !== '' && b.nota != null && +b.nota < 4.2) return 'notabaja';
+  if (+b.resenas < 50) return tieneRival ? 'pocas' : 'pocas-sin-rival';
+  return 'bien';
+}
+function guionHTML(fam, sit, vals) {
+  vals = Object.assign({momento: G['momento:' + fam] || 'al despedir al cliente'}, vals);
+  const cierre = sit === 'sinperfil' ? 'cierre:sinperfil' : sit === 'nfc' ? 'cierre:nfc' : sit === 'bien' ? '' : 'cierre';
+  return ['gancho:' + fam, 'sit:' + sit, cierre].map(c => c && G[c] ? `<p>${txt(c, vals)}</p>` : '').join('');
+}
+
 /* ---------- índice: estado de cada local calculado desde las visitas ---------- */
 let LOC = {}, TODOS = [], IDX = {};
 function indexar() {
@@ -106,11 +140,11 @@ function indexar() {
     else { x.ult = v; if (v.resultado === 'vendido') { x.venta = v; x.control = null; } }
     if (v.resenas !== '' && v.resenas != null) { x.resenas = +v.resenas; x.nota = v.notaGoogle; }
     if (v.perfil) x.perfil = v.perfil;
-    x.nfc = v.nfc === 'sí';
+    x.nfc = v.nfc === 'sí'; if (v.nfcNota) x.nfcNota = v.nfcNota;
   }
 }
 
-const S = {tab: 'hoy', localId: null, paso: null, agregando: false, b: {}, fam: 'todas', q: '', pos: null, limite: 40, borrar: false};
+const S = {tab: 'hoy', localId: null, paso: null, agregando: false, diag: false, b: {}, fam: 'todas', q: '', pos: null, limite: 40, borrar: false, gf: 'comida', gs: 'pocas'};
 
 /* ---------- campos de formulario: todo lo que se escribe queda en S.b ---------- */
 const inp = (f, label, type, extra) => `<label class="f">${label}<input data-f="${f}" id="f-${f}" type="${type}" value="${esc(S.b[f] ?? '')}" ${extra || ''}></label>`;
@@ -183,7 +217,11 @@ function vFicha(l) {
   <div class="row">${i.ult ? chip(EST[i.ult.resultado]) : chip(['Sin visitar','c-idle'])}<a href="${mapa}" target="_blank" rel="noopener">Abrir en Google Maps</a></div>
   <div class="card"><div class="label">Lo que ves hoy en Google Maps</div>
     <div class="row">${inp('nota', 'Nota (estrellas)', 'number', 'step="0.1" min="1" max="5" inputmode="decimal" placeholder="4.3"')}${inp('resenas', 'Cantidad de reseñas', 'number', 'min="0" inputmode="numeric" placeholder="23"')}</div>
-    ${sel('perfil', '¿Aparece en Google Maps?', [['', 'No revisé'], ['sí', 'Sí'], ['no', 'No aparece']])}${chk('nfc', 'Ya tiene una tarjeta NFC de reseñas')}</div>`;
+    ${sel('perfil', '¿Aparece en Google Maps?', [['', 'No revisé'], ['sí', 'Sí'], ['no', 'No aparece']])}${chk('nfc', 'Ya tiene una tarjeta NFC de reseñas')}
+    ${b.nfc ? inp('nfcNota', '¿De quién es la tarjeta y la usan?', 'text', 'placeholder="ej. se la vendió otro grupo, está en un cajón"') : ''}</div>`;
+  const sit = situacion(b, !!c), vals = {local: l.n, resenas: b.resenas, nota: b.nota, rival: c ? c.n : '', resenasRival: c ? IDX[c.id].resenas : ''};
+  h += `<div class="card"><div class="row between"><div class="label">Qué decir aquí</div>${chip([SITS[sit], sit === 'bien' ? 'c-idle' : 'c-brand'])}</div><div class="quote">${guionHTML(l.fam, sit, vals) || '<p>Este local está en "No visitar".</p>'}</div>
+    ${b.resenas !== '' && b.resenas != null && b.perfil !== 'no' ? '<button class="btn block" data-diag="1">Mostrarle el mini diagnóstico</button>' : ''}</div>`;
   if (b.resenas !== '' && b.resenas != null) {
     const mio = +b.resenas, max = Math.max(mio, c ? IDX[c.id].resenas : 0, 1);
     h += `<div class="card"><div class="label">Comparación (mismo tipo de local)</div>
@@ -193,11 +231,16 @@ function vFicha(l) {
   }
   if (S.paso === 'vendido') h += `<div class="card"><h2>Venta</h2><div class="row">${inp('cantidad', 'Unidades', 'number', 'min="1" inputmode="numeric"')}${inp('precio', 'Precio total ($)', 'number', 'min="0" inputmode="numeric"')}</div>
     ${sel('formato', 'Formato', ['Tarjeta', 'Soporte de mesa', 'Adhesivo', 'Otro'])}${inp('notaTxt', 'Nota', 'text', 'placeholder="ej. la dejé en la caja"')}
+    <div class="label">Déjale esta frase al local</div><div class="quote"><p>${txt('frase:staff')}</p></div>
     <p class="sub">Las reseñas anotadas arriba quedan como el "antes". En ${DIAS_CONTROL} días la app te pedirá contarlas de nuevo.</p><button class="btn primary block" data-guardar="vendido">Guardar venta</button></div>`;
   else if (S.paso === 'volver') h += `<div class="card"><h2>Volver</h2><div class="row">${inp('volverFecha', 'Día', 'date')}${inp('volverHora', 'Hora', 'time')}</div>
     ${inp('quien', 'Preguntar por', 'text', 'placeholder="ej. Carla, la dueña"')}${inp('notaTxt', 'Nota', 'text', 'placeholder="ej. le interesó la demo"')}<button class="btn primary block" data-guardar="volver">Agendar</button></div>`;
   else if (S.paso === 'no') h += `<div class="card"><h2>Dijo que no</h2><div class="label">Motivo principal</div><div class="opts">${MOTIVOS.map(m => `<button class="opt" aria-pressed="${b.motivo === m}" data-motivo="${m}">${m}</button>`).join('')}</div>
-    ${inp('notaTxt', 'Nota (en sus palabras)', 'text')}<button class="btn primary block" data-guardar="no">Guardar</button></div>`;
+    ${inp('notaTxt', 'Nota (en sus palabras)', 'text')}
+    <div class="label">Antes de irte: encuesta de tres preguntas</div><div class="quote"><p>${txt('encuesta:intro')}</p></div>
+    ${sel('enc1', '1. ¿Cómo llegan hoy sus clientes nuevos?', ENC1)}${sel('enc2', '2. ¿Ha pedido reseñas alguna vez?', ENC2)}${inp('enc3', '3. ¿Qué tendría que pasar para que le sirviera?', 'text', 'placeholder="en sus palabras"')}
+    ${b.resenas !== '' && b.resenas != null && b.perfil !== 'no' ? '<button class="btn block" data-diag="1">Mostrarle el mini diagnóstico</button>' : '<p class="sub">Para mostrarle el mini diagnóstico, anota arriba su nota y sus reseñas.</p>'}
+    <button class="btn primary block" data-guardar="no">Guardar</button></div>`;
   else if (S.paso === 'perfil') h += `<div class="card"><h2>Crear su perfil en Google</h2><p class="sub">Siempre con la cuenta del dueño. Tú no tocas sus contraseñas.</p>
     ${chk('pIniciado', 'Perfil iniciado con el dueño')}${chk('pVerif', 'Verificación de Google solicitada')}
     <div class="row">${inp('volverFecha', 'Volver el', 'date')}${inp('quien', 'Preguntar por', 'text')}</div><button class="btn primary block" data-guardar="perfil">Guardar seguimiento</button></div>`;
@@ -209,6 +252,39 @@ function vFicha(l) {
   if (S.paso) h += `<button class="btn block" data-paso="">Cancelar</button>`;
   if (i.vis.length) h += `<div class="card"><div class="label">Historial</div>${i.vis.slice().reverse().map(v => `<div><strong>${fechaCorta(v.fecha)}</strong> · ${v.resultado === 'control' ? 'Control' : EST[v.resultado][0]}${v.motivo ? ' (' + esc(v.motivo) + ')' : ''}${v.resenas !== '' ? ' · ' + esc(v.resenas) + ' reseñas' : ''}${v.nota ? ' · ' + esc(v.nota) : ''}</div>`).join('')}</div>`;
   return h;
+}
+
+/* ---------- pantalla: mini diagnóstico (para mostrarle el teléfono al dueño) ---------- */
+function vDiag(l) {
+  const b = S.b, c = rivalDe(l), sit = situacion(b, !!c), mio = +b.resenas;
+  const pares = TODOS.filter(x => x.id !== l.id && x.tipo === l.tipo && IDX[x.id] && IDX[x.id].resenas != null).map(x => IDX[x.id].resenas);
+  const puesto = pares.filter(n => n > mio).length + 1, max = Math.max(mio, c ? IDX[c.id].resenas : 0, 1);
+  const consejo = {pocas: 'diag:pocas', 'pocas-sin-rival': 'diag:pocas', notabaja: 'diag:notabaja', sinperfil: 'diag:sinperfil', bien: 'diag:bien'}[sit] || 'diag:pocas';
+  return `<button class="back" data-diag="">‹ Volver a la ficha</button>
+  <div class="label">Así se ve hoy en Google Maps</div><h1>${esc(l.n)}</h1>
+  <div class="stats"><div class="stat"><b>${b.nota !== '' && b.nota != null ? '★ ' + esc(b.nota) : '–'}</b><span>nota</span></div><div class="stat"><b>${mio}</b><span>reseñas</span></div></div>
+  <div class="card"><h2>Frente a otros locales del mismo tipo</h2>
+    <div class="bar"><div><div>${esc(l.n)}</div><div class="track"><div class="fill" style="width:${mio / max * 100}%"></div></div></div><b>${mio}</b></div>
+    ${c ? `<div class="bar"><div><div>${esc(c.n)}</div><div class="track"><div class="fill rival" style="width:${IDX[c.id].resenas / max * 100}%"></div></div></div><b>${IDX[c.id].resenas}</b></div>
+      <p class="sub">Lugar ${puesto} de ${pares.length + 1} entre los locales de tipo "${esc(l.tipoN)}" que he revisado en el sector.</p>`
+      : `<p class="sub">Todavía no he revisado otro local de tipo "${esc(l.tipoN)}" en el sector para comparar.</p>`}</div>
+  <div class="card"><h2>Qué puede hacer</h2><p>${txt(consejo)}</p><p>${txt('diag:general')}</p></div>
+  <p class="sub">Datos vistos en Google Maps el ${fechaCorta(hoy())}.</p>`;
+}
+
+/* ---------- pantalla: Guion (para ensayar antes de salir) ---------- */
+function vGuion() {
+  const ops = (obj, sel) => Object.entries(obj).map(([v, t]) => `<option value="${v}" ${v === sel ? 'selected' : ''}>${t}</option>`).join('');
+  const fams = Object.fromEntries(Object.entries(FAM).filter(([k]) => k !== 'novisitar'));
+  const ej = {local: 'su local', resenas: 23, nota: '3.8', rival: 'El local más visible de la cuadra', resenasRival: 310};
+  const obj = Object.keys(G).filter(k => k.startsWith('objecion:')).sort().map(k => { const p = G[k].split('→'); return `<details><summary>"${esc(p[0].trim())}"</summary><p>${esc((p[1] || '').trim())}</p></details>`; }).join('');
+  return `<h1>Guion</h1><p class="sub">Para ensayar antes de salir. En la ficha de cada local aparece ya armado con sus números.</p>
+  <div class="row"><label class="f">Familia<select id="g-f">${ops(fams, S.gf)}</select></label><label class="f">Situación<select id="g-s">${ops(SITS, S.gs)}</select></label></div>
+  <div class="card"><div class="label">Qué decir</div><div class="quote">${guionHTML(S.gf, S.gs, ej)}</div></div>
+  <div class="card"><h2>Si te dicen…</h2>${obj}</div>
+  <div class="card"><h2>La frase que le dejas al local</h2><div class="quote"><p>${txt('frase:staff')}</p></div></div>
+  <div class="card"><h2>Lo que no se ofrece</h2><p class="sub">Nada de descuentos o regalos a cambio de reseñas, ni pedirlas solo a clientes contentos. Google lo prohíbe y puede borrarlas.</p></div>
+  <p class="sub">${Store.cfg ? 'Estos textos se editan en la pestaña "Guiones" de la hoja de Google.' : 'Al conectar la hoja de Google, estos textos se podrán editar en su pestaña "Guiones".'}</p>`;
 }
 
 /* ---------- pantalla: Resumen ---------- */
@@ -234,17 +310,17 @@ function vResumen() {
 }
 
 /* ---------- dibujar ---------- */
-const TABS = [['hoy', 'Hoy', '<path d="M4 7h16M4 12h16M4 17h10"/>'], ['locales', 'Locales', '<path d="M12 21s-6-5.5-6-10a6 6 0 1 1 12 0c0 4.5-6 10-6 10z"/><circle cx="12" cy="11" r="2"/>'], ['resumen', 'Resumen', '<path d="M5 19V10M12 19V5M19 19v-7"/>']];
+const TABS = [['hoy', 'Hoy', '<path d="M4 7h16M4 12h16M4 17h10"/>'], ['locales', 'Locales', '<path d="M12 21s-6-5.5-6-10a6 6 0 1 1 12 0c0 4.5-6 10-6 10z"/><circle cx="12" cy="11" r="2"/>'], ['guion', 'Guion', '<path d="M5 5h14v10H9l-4 4z"/>'], ['resumen', 'Resumen', '<path d="M5 19V10M12 19V5M19 19v-7"/>']];
 function render() {
   const l = S.localId && LOC[S.localId];
-  $('#view').innerHTML = l ? vFicha(l) : S.agregando ? vAgregar() : ({hoy: vHoy, locales: vLocales, resumen: vResumen}[S.tab])();
+  $('#view').innerHTML = l ? (S.diag ? vDiag(l) : vFicha(l)) : S.agregando ? vAgregar() : ({hoy: vHoy, locales: vLocales, guion: vGuion, resumen: vResumen}[S.tab])();
   $('#tabs').innerHTML = TABS.map(t => `<button data-tab="${t[0]}" ${S.tab === t[0] && !l && !S.agregando ? 'aria-current="page"' : ''}><svg viewBox="0 0 24 24" aria-hidden="true">${t[2]}</svg>${t[1]}</button>`).join('');
 }
-function ir(tab) { S.tab = tab; S.localId = null; S.paso = null; S.agregando = false; S.borrar = false; render(); window.scrollTo(0, 0); }
+function ir(tab) { S.tab = tab; S.localId = null; S.paso = null; S.agregando = false; S.diag = false; S.borrar = false; render(); window.scrollTo(0, 0); }
 function abrir(id) {
   const i = IDX[id] || {};
-  S.localId = id; S.paso = null; S.agregando = false;
-  S.b = {nota: i.nota ?? '', resenas: i.resenas ?? '', perfil: i.perfil || '', nfc: !!i.nfc, cantidad: 1, precio: '', formato: 'Tarjeta', volverFecha: masDias(1), volverHora: '16:00', quien: '', notaTxt: '', motivo: ''};
+  S.localId = id; S.paso = null; S.agregando = false; S.diag = false;
+  S.b = {nota: i.nota ?? '', resenas: i.resenas ?? '', perfil: i.perfil || '', nfc: !!i.nfc, nfcNota: i.nfcNota || '', enc1: ENC1[0], enc2: ENC2[0], enc3: '', cantidad: 1, precio: '', formato: 'Tarjeta', volverFecha: masDias(1), volverHora: '16:00', quien: '', notaTxt: '', motivo: ''};
   render(); window.scrollTo(0, 0);
 }
 
@@ -262,14 +338,16 @@ function guardarVisita(resultado) {
     volverFecha: agenda ? b.volverFecha : '', volverHora: resultado === 'volver' ? b.volverHora : '', quien: agenda ? b.quien : '',
     notaGoogle: b.nota, resenas: b.resenas, perfil: b.perfil, nfc: b.nfc ? 'sí' : 'no',
     cantidad: resultado === 'vendido' ? b.cantidad : '', precio: resultado === 'vendido' ? b.precio : '', formato: resultado === 'vendido' ? b.formato : '',
-    nota: resultado === 'perfil' ? [b.pIniciado ? 'perfil iniciado' : '', b.pVerif ? 'verificación solicitada' : ''].filter(Boolean).join(', ') : b.notaTxt
+    nota: resultado === 'perfil' ? [b.pIniciado ? 'perfil iniciado' : '', b.pVerif ? 'verificación solicitada' : ''].filter(Boolean).join(', ') : b.notaTxt,
+    encuesta1: resultado === 'no' && b.enc1 !== ENC1[0] ? b.enc1 : '', encuesta2: resultado === 'no' && b.enc2 !== ENC2[0] ? b.enc2 : '', encuesta3: resultado === 'no' ? b.enc3 : '',
+    nfcNota: b.nfc ? b.nfcNota : ''
   });
   toast({vendido: 'Venta guardada. Control agendado para ' + DIAS_CONTROL + ' días más.', volver: 'Agendado. Aparecerá en Hoy ese día.', no: 'Guardado. El motivo se suma al resumen.', perfil: 'Seguimiento guardado.', control: 'Control guardado.'}[resultado]);
   ir(resultado === 'control' ? 'resumen' : 'locales');
 }
 
 function descargarCSV() {
-  const cols = ['fecha', 'local', 'familia', 'tipo', 'direccion', 'resultado', 'motivo', 'volverFecha', 'volverHora', 'quien', 'notaGoogle', 'resenas', 'perfil', 'nfc', 'cantidad', 'precio', 'formato', 'nota', 'localId'];
+  const cols = ['fecha', 'local', 'familia', 'tipo', 'direccion', 'resultado', 'motivo', 'volverFecha', 'volverHora', 'quien', 'notaGoogle', 'resenas', 'perfil', 'nfc', 'cantidad', 'precio', 'formato', 'nota', 'localId', 'encuesta1', 'encuesta2', 'encuesta3', 'nfcNota'];
   const celda = v => '"' + String(v ?? '').replace(/"/g, '""') + '"';
   // ";" como separador y una marca inicial (BOM) para que Excel en español lo abra bien con tildes
   const txt = '﻿' + [cols.join(';')].concat(Store.datos.visitas.map(v => cols.map(c => celda(v[c])).join(';'))).join('\r\n');
@@ -284,6 +362,7 @@ document.addEventListener('click', e => {
   if (d.tab) return ir(d.tab);
   if (d.abrir) return abrir(d.abrir);
   if (d.paso !== undefined) { S.paso = d.paso || null; return render(); }
+  if (d.diag !== undefined) { S.diag = !!d.diag; render(); return window.scrollTo(0, 0); }
   if (d.motivo) { S.b.motivo = d.motivo; return render(); }
   if (d.guardar) return guardarVisita(d.guardar);
   if (d.fam) { S.fam = d.fam; S.limite = 40; return render(); }
@@ -321,10 +400,12 @@ document.addEventListener('input', e => {
   if (t.dataset.f) S.b[t.dataset.f] = t.type === 'checkbox' ? t.checked : t.value;
 });
 document.addEventListener('change', e => { // al salir de estos campos se redibuja para actualizar la comparación y los botones
-  if (S.localId && ['resenas', 'perfil'].includes(e.target.dataset.f)) render();
+  if (S.localId && ['resenas', 'perfil', 'nota', 'nfc'].includes(e.target.dataset.f)) render();
+  if (e.target.id === 'g-f') { S.gf = e.target.value; render(); }
+  if (e.target.id === 'g-s') { S.gs = e.target.value; render(); }
 });
 
-Store.cargar(); indexar(); render(); aviso();
+Store.cargar(); cargarGuiones(); indexar(); render(); aviso();
 // Al abrir: primero sube lo pendiente y después trae lo que haya en la hoja (por si se usó otro teléfono).
 if (Store.cfg) Store.sincronizar().then(() => Store.error ? null : Store.bajar()).then(() => { if (!S.localId && !S.agregando) render(); }).catch(() => {});
 window.addEventListener('online', () => Store.sincronizar());

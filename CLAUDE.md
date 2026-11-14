@@ -14,8 +14,8 @@ Hecho de la etapa A: app funcionando en modo prueba (guarda en el navegador) con
 Sector: parte en Manuel Montt y avanza hacia Pedro de Valdivia y más allá, y hacia el sur. La lista cubre
 desde Manuel Montt hasta pasado Los Leones, y desde Andrés Bello hasta Irarrázaval (Providencia y Ñuñoa).
 La hoja de Google será de Bastián al inicio y después se traspasa al primo.
-La app ya sabe enviar a la hoja (probado contra un servidor falso). Falta de la etapa A: que Bastián cree
-la hoja y publique el puente (pasos abajo), probar con la hoja real y publicar la app para el teléfono.
+La hoja real está conectada (cuenta de Bastián). Falta de la etapa A: publicar la app para el teléfono.
+Etapa C construida y probada contra un servidor falso; falta actualizar el puente en la hoja real.
 
 ## Archivos
 - `index.html`, `estilos.css`, `app.js`: la app. Sin instalaciones ni librerías.
@@ -25,6 +25,13 @@ la hoja y publique el puente (pasos abajo), probar con la hoja real y publicar l
 - `preview/`: maqueta inicial con datos inventados (publicada como artefacto). Queda de referencia.
 
 - `apps-script/Codigo.gs`: el puente. Se pega dentro de la hoja de Google (Extensiones > Apps Script).
+- `guiones.js`: textos base (gancho por familia, situación, cierre, objeciones, encuesta, diagnóstico).
+  Al conectar la hoja se copian a su pestaña "Guiones"; lo editado ahí reemplaza a este archivo.
+
+## Cómo se arma un guion
+Gancho de la familia + situación del local + cierre. La situación sale de lo anotado en la ficha:
+ya tiene NFC, no aparece en Google, sin datos, nota bajo 4,2, menos de 50 reseñas (con o sin competidor
+del mismo tipo anotado) o ya bien posicionado. El mini diagnóstico usa esos mismos datos.
 
 ## Cómo está armada la app
 Cada visita se guarda una sola vez como una fila (fecha, local, resultado, motivo, cuándo volver, reseñas,

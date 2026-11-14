@@ -9,13 +9,15 @@
   - Sector ampliado el 2026-11-14 a 2.510 locales. 698 no traen dirección en OpenStreetMap: se ubican
     por cercanía, no por calle.
   - Revisar con el primo la clasificación: hay cadenas dentro de familias vendibles (farmacias, comida rápida).
-- Mostrarle al primo el preview navegable (`preview/index.html`, publicado como artefacto) y recoger su
-  opinión con la pestaña "Opinión", antes de construir.
-- Diseñar la ficha del local: núcleo fijo y campos según el caso.
-- Redactar los guiones base por rubro y situación (el primo los pasa a sus palabras).
-- Definir las 3 preguntas de la encuesta tras un "no" y el contenido del mini diagnóstico.
-- Diseñar las pestañas de la hoja: datos crudos, Seguimiento, Rendición al grupo, Motivos del no, Casos, Guiones.
-- Construir la versión 1 (pantallas en `CLAUDE.md`).
+- **Etapa C, construida el 2026-11-14 sin commit todavía** (Bastián no la ha revisado):
+  - Hecho en la app: guion por familia y situación en cada ficha, pantalla Guion para ensayar, encuesta
+    de tres preguntas tras el "no", mini diagnóstico para mostrar al dueño, y nota de "ya tiene NFC".
+  - **Falta que Bastián actualice el puente en la hoja**: pegar el `Codigo.gs` nuevo, publicar una versión
+    nueva y usar "Preparar hoja". Hasta entonces la hoja no recibe la encuesta ni tiene la pestaña Guiones.
+  - Falta que el primo revise los textos de `guiones.js` y los pase a sus palabras (en la pestaña Guiones).
+  - Los umbrales de situación (nota bajo 4,2; menos de 50 reseñas) son un punto de partida sin validar.
+- **Etapa B:** nota y reseñas en vivo desde Google Maps. Necesita cuenta de facturación con tarjeta.
+- Mostrarle la app al primo y recoger su opinión con uso real.
 - Definir el nombre definitivo (`ventas-nfc` es provisorio).
 
 ## Aprobado por Bastián el 2026-11-14 (ya está en CLAUDE.md)

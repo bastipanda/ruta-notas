@@ -6,8 +6,9 @@
 // La clave que pide cada envío vive en las "propiedades del script" (un almacén privado de Google),
 // nunca en este código, para que el archivo pueda estar en el repositorio sin exponer nada.
 
-const COLS = ['id','fecha','local','familia','tipo','direccion','resultado','motivo','volverFecha','volverHora','quien','notaGoogle','resenas','perfil','nfc','cantidad','precio','formato','nota','localId'];
+const COLS = ['id','fecha','local','familia','tipo','direccion','resultado','motivo','volverFecha','volverHora','quien','notaGoogle','resenas','perfil','nfc','cantidad','precio','formato','nota','localId','encuesta1','encuesta2','encuesta3','nfcNota'];
 const COLS_LOCAL = ['id','n','fam','tipo','tipoN','dir','lat','lon'];
+const COLS_GUION = ['clave','para qué sirve','texto'];
 const DIAS_CONTROL = 21;
 
 /* ---------- menú dentro de la hoja ---------- */
@@ -20,9 +21,10 @@ function onOpen() {
 }
 
 function prepararHoja() {
-  hoja_('Visitas', COLS);
+  encabezados_(hoja_('Visitas', COLS), COLS); // si la versión nueva trae columnas extra, las agrega al final
   hoja_('Locales agregados', COLS_LOCAL);
-  ['Seguimiento', 'Rendición', 'Motivos', 'Casos'].forEach(function (n) { hoja_(n); });
+  hoja_('Guiones', COLS_GUION);
+  ['Seguimiento', 'Rendición', 'Motivos', 'Casos', 'Encuesta'].forEach(function (n) { hoja_(n); });
   const p = PropertiesService.getScriptProperties();
   if (!p.getProperty('CLAVE')) p.setProperty('CLAVE', Utilities.getUuid().replace(/-/g, '').slice(0, 16));
   recalcular();
@@ -46,7 +48,14 @@ function doPost(e) {
   if (!clave || d.clave !== clave) return json_({ok: false, error: 'clave'});
 
   if (d.accion === 'ping') return json_({ok: true});
-  if (d.accion === 'todo') return json_({ok: true, visitas: leer_('Visitas', COLS), locales: leer_('Locales agregados', COLS_LOCAL)});
+  if (d.accion === 'todo') return json_({ok: true, visitas: leer_('Visitas', COLS), locales: leer_('Locales agregados', COLS_LOCAL),
+    guiones: leer_('Guiones', COLS_GUION).map(function (g) { return {clave: g.clave, texto: g.texto}; })});
+  if (d.accion === 'guiones') { // la app deja los textos base solo si la pestaña está vacía; después manda lo que se edite aquí
+    const g = hoja_('Guiones', COLS_GUION);
+    if (g.getLastRow() < 2 && d.lista && d.lista.length)
+      g.getRange(2, 1, d.lista.length, 3).setValues(d.lista.map(function (f) { return [texto_(f[0]), texto_(f[1]), texto_(f[2])]; }));
+    return json_({ok: true});
+  }
 
   const candado = LockService.getScriptLock(); // evita que dos envíos simultáneos se pisen
   candado.waitLock(20000);
@@ -73,6 +82,14 @@ function hoja_(nombre, encabezados) {
     h.getRange(1, 1, 1, encabezados.length).setFontWeight('bold');
   }
   return h;
+}
+
+function encabezados_(h, cols) { // deja la primera fila igual a la lista de columnas actual
+  const actual = h.getRange(1, 1, 1, Math.max(h.getLastColumn(), 1)).getDisplayValues()[0].join('|');
+  if (actual === cols.join('|')) return;
+  if (h.getMaxColumns() < cols.length) h.insertColumnsAfter(h.getMaxColumns(), cols.length - h.getMaxColumns());
+  h.getRange(1, 1, h.getMaxRows(), cols.length).setNumberFormat('@');
+  h.getRange(1, 1, 1, cols.length).setValues([cols]).setFontWeight('bold');
 }
 
 function texto_(v) { // un texto que parte con = + - @ se guardaría como fórmula; el apóstrofo lo deja como texto
@@ -156,6 +173,17 @@ function recalcular() {
   V.forEach(function (v) { if (v.resultado === 'no' && v.motivo) { const k = v.motivo + '|' + v.familia; mot[k] = (mot[k] || 0) + 1; } });
   const mm = Object.keys(mot).map(function (k) { const p = k.split('|'); return [p[0], p[1], mot[k]]; }).sort(function (a, b) { return b[2] - a[2]; });
   escribir_('Motivos', [['Motivo', 'Familia', 'Veces']].concat(mm));
+
+  // Encuesta: qué respondieron los que dijeron que no
+  const p1 = {}, p2 = {}, abiertas = [];
+  V.forEach(function (v) {
+    if (v.encuesta1) p1[v.encuesta1] = (p1[v.encuesta1] || 0) + 1;
+    if (v.encuesta2) p2[v.encuesta2] = (p2[v.encuesta2] || 0) + 1;
+    if (v.encuesta3) abiertas.push(['3. ¿Qué tendría que pasar para que le sirviera?', v.encuesta3, v.local + ' (' + v.familia + ')']);
+  });
+  const contar = function (titulo, o) { return Object.keys(o).sort(function (a, b) { return o[b] - o[a]; }).map(function (k) { return [titulo, k, o[k]]; }); };
+  escribir_('Encuesta', [['Pregunta', 'Respuesta', 'Veces o local']]
+    .concat(contar('1. ¿Cómo llegan hoy sus clientes nuevos?', p1), contar('2. ¿Ha pedido reseñas alguna vez?', p2), abiertas));
 
   // Casos: reseñas antes y después de cada venta
   const casos = [];

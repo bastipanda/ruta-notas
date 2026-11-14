@@ -75,7 +75,13 @@ th,td{text-align:left;padding:7px 4px;border-bottom:1px solid var(--line)}
 td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 nav{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);z-index:5;
   padding:0 max(8px,env(safe-area-inset-right,0px)) env(safe-area-inset-bottom,0px) max(8px,env(safe-area-inset-left,0px))}
-nav div{max-width:460px;margin:0 auto;display:grid;grid-template-columns:repeat(3,1fr)}
+nav div{max-width:460px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr)}
+.quote{background:var(--brand-soft);border-radius:10px;padding:12px 14px;font-size:15px}
+.quote p{margin:0 0 8px} .quote p:last-child{margin:0}
+.card>p{margin:0}
+details{border-top:1px solid var(--line);padding-top:8px}
+summary{font-weight:600;cursor:pointer}
+details p{margin:8px 0 0;color:var(--muted)}
 nav button{background:none;border:0;color:var(--muted);padding:9px 2px 8px;font-size:11px;font-weight:600;cursor:pointer;
   display:flex;flex-direction:column;align-items:center;gap:3px}
 nav button svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
