@@ -6,20 +6,33 @@
 <!-- Pide a los buscadores que no muestren esta página en sus resultados -->
 <meta name="robots" content="noindex, nofollow">
 <title>Ventas NFC</title>
+<!-- Para instalarla en la pantalla de inicio: el manifiesto lo lee Android; las etiquetas "apple" las lee iPhone -->
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="iconos/icono-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Ventas NFC">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#0b5c6b" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f171d" media="(prefers-color-scheme: dark)">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap">
-<link rel="stylesheet" href="estilos.css">
+<link rel="stylesheet" href="estilos.css?v=2">
 </head>
 <body>
+<header class="top"><div class="top-in">
+  <img src="iconos/icono-180.png" alt="" width="28" height="28">
+  <span class="marca">Ventas NFC</span>
+</div></header>
 <div class="app">
-  <div class="demo" id="aviso">Modo prueba: lo que registres se guarda solo en este navegador. Todavía no va a la hoja de Google.</div>
+  <div class="demo" id="aviso">Modo prueba: lo que registres se guarda solo en este navegador.</div>
   <main id="view" class="stack"></main>
 </div>
 <nav aria-label="Pantallas"><div id="tabs"></div></nav>
 <div id="toast" hidden role="status"></div>
 <!-- Lista base de locales (OpenStreetMap). Se regenera con herramientas/preparar-locales.js -->
-<script src="datos/locales.js"></script>
+<script src="datos/locales.js?v=2"></script>
 <!-- Textos base de los guiones. Lo editado en la pestaña "Guiones" de la hoja los reemplaza -->
-<script src="guiones.js"></script>
-<script src="app.js"></script>
+<script src="guiones.js?v=2"></script>
+<script src="app.js?v=2"></script>
 </body>
 </html>

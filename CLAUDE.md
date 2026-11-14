@@ -132,5 +132,9 @@ Para cambiar de sector: editar las coordenadas en `datos/consulta-osm.txt`, volv
 - La app se sirve con GitHub Pages desde la rama `main`: https://bastipanda.github.io/ruta-notas/
 - Publicar un cambio = commit + `git push` (con el OK de Bastián). GitHub tarda uno o dos minutos en
   actualizar la página. En el teléfono puede hacer falta recargar para ver la versión nueva.
+- Al cambiar `app.js`, `estilos.css`, `guiones.js` o `datos/locales.js`, subir el número `?v=` de ese
+  archivo en `index.html`. Sin eso el teléfono puede seguir mostrando la copia antigua que tiene guardada.
+- Instalable en iPhone: Safari > compartir > "Agregar a inicio". La app instalada tiene memoria propia,
+  separada de Safari: la hoja se conecta dentro de la app ya instalada. Ícono: `herramientas/crear-icono.py`.
 - Nunca subir claves, la dirección del puente ni planillas con datos reales (`.gitignore` ya excluye
   `.env`, `*.csv` y `*.xlsx`).

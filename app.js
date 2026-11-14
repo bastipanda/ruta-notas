@@ -23,6 +23,9 @@ const masDias = n => { const d = new Date(); d.setDate(d.getDate() + n); return 
 const fechaCorta = s => { const p = String(s).slice(0, 10).split('-'); return p[2] + '/' + p[1]; };
 const diasEntre = (a, b) => Math.round((new Date(b + 'T00:00') - new Date(a + 'T00:00')) / 864e5);
 const chip = p => `<span class="chip ${p[1]}">${p[0]}</span>`;
+// Inicial del local sobre un color propio de su familia: ayuda a distinguir rubros de un vistazo
+const TONO = {comida: 18, cafe: 38, rapida: 2, salud: 200, belleza: 320, autos: 225, servicios: 265, mascotas: 150, tiendas: 180, novisitar: 210};
+const avatar = l => `<span class="av" style="--h:${TONO[l.fam] ?? 190}" aria-hidden="true">${esc((l.n.match(/[A-Za-zÁÉÍÓÚÑáéíóúñ0-9]/) || ['·'])[0].toUpperCase())}</span>`;
 function toast(t) { const e = $('#toast'); e.textContent = t; e.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => e.hidden = true, 3000); }
 function metros(a, b) { // distancia aproximada, suficiente para ordenar locales de un barrio
   const x = (b.lon - a.lon) * Math.cos((a.lat + b.lat) / 2 * Math.PI / 180), y = b.lat - a.lat;
@@ -164,7 +167,8 @@ function vHoy() {
   const deHoy = Store.datos.visitas.filter(v => v.fecha.slice(0, 10) === h);
   const fila = ([l, v]) => `<button class="item" data-abrir="${l.id}"><div class="row between"><strong>${esc(l.n)}</strong>${chip(v.volverFecha < h ? ['Atrasado','c-bad'] : EST[v.resultado])}</div>
     <div class="sub">${fechaCorta(v.volverFecha)}${v.volverHora ? ' a las ' + esc(v.volverHora) : ''}${v.quien ? ' · preguntar por ' + esc(v.quien) : ''}${l.dir ? ' · ' + esc(l.dir) : ''}</div>${v.nota ? `<div class="sub">${esc(v.nota)}</div>` : ''}</button>`;
-  return `<h1>Hoy</h1><p class="sub">Lo que no puede quedar sin hacer antes de tocar puertas nuevas.</p>
+  return `<div><p class="fecha">${new Date().toLocaleDateString('es-CL', {weekday: 'long', day: 'numeric', month: 'long'})}</p><h1>Hoy</h1></div>
+  <p class="sub">Lo que no puede quedar sin hacer antes de tocar puertas nuevas.</p>
   <div class="stats"><div class="stat"><b>${deHoy.length}</b><span>visitas registradas hoy</span></div><div class="stat"><b>${deHoy.filter(v => v.resultado === 'vendido').length}</b><span>ventas hoy</span></div></div>
   <div class="label">Volver hoy</div>${pend.map(fila).join('') || '<p class="sub">Nadie agendado para hoy.</p>'}
   <div class="label">Contar reseñas (3 semanas después de vender)</div>${ctrl.map(([l, v]) => `<button class="item" data-abrir="${l.id}"><div class="row between"><strong>${esc(l.n)}</strong>${chip(['Control pendiente','c-ok'])}</div><div class="sub">Tenía ${esc(v.resenas)} reseñas al vender, el ${fechaCorta(v.fecha)}.</div></button>`).join('') || '<p class="sub">Sin controles pendientes.</p>'}
@@ -183,9 +187,9 @@ function listaHTML() {
   const l = listaFiltrada();
   return `<p class="sub">${l.length} locales${S.pos ? ', del más cercano al más lejano' : ', por orden alfabético'}.</p>` +
     l.slice(0, S.limite).map(x => { const i = IDX[x.id] || {};
-      return `<button class="item" data-abrir="${x.id}"><div class="row between"><strong>${esc(x.n)}</strong>${S.pos ? `<span class="dist">${x._d < 1000 ? Math.round(x._d / 10) * 10 + ' m' : (x._d / 1000).toFixed(1) + ' km'}</span>` : ''}</div>
-      <div class="sub">${esc(x.tipoN)}${x.dir ? ' · ' + esc(x.dir) : ''}</div>
-      <div class="row">${i.ult ? chip(EST[i.ult.resultado]) : ''}${i.resenas != null ? `<span class="rating">★ ${esc(i.nota || '–')} (${i.resenas})</span>` : ''}${i.nfc ? chip(['Ya tiene NFC','c-idle']) : ''}</div></button>`; }).join('') +
+      const extra = (i.ult ? chip(EST[i.ult.resultado]) : '') + (i.resenas != null ? `<span class="rating">★ ${esc(i.nota || '–')} (${i.resenas})</span>` : '') + (i.nfc ? chip(['Ya tiene NFC','c-idle']) : '');
+      return `<button class="item con-av" data-abrir="${x.id}">${avatar(x)}<span class="cuerpo"><span class="row between"><strong>${esc(x.n)}</strong>${S.pos ? `<span class="dist">${x._d < 1000 ? Math.round(x._d / 10) * 10 + ' m' : (x._d / 1000).toFixed(1) + ' km'}</span>` : ''}</span>
+      <span class="sub">${esc(x.tipoN)}${x.dir ? ' · ' + esc(x.dir) : ''}</span>${extra ? `<span class="row">${extra}</span>` : ''}</span></button>`; }).join('') +
     (l.length > S.limite ? `<button class="btn block" data-mas="1">Ver más</button>` : '');
 }
 function vLocales() {
